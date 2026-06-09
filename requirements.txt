@@ -1,0 +1,8 @@
+torch
+numpy
+tqdm
+tokenizers
+rouge-score
+nltk
+scikit-learn
+matplotlib
