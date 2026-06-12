@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML datasets and generated artifacts
+data/
+dataset/
+checkpoints/
+outputs/
+runs/
+wandb/
+
+# Model files
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# Tokenizer artifacts
+tokenizer/
+*.model
+*.vocab
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE/editor
+.vscode/
+.idea/
+#dataset
+
+Dataset/
+dataset/
+data/
+IN-Abs/
+IN-Ext/
+UK-Abs/
