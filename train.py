@@ -5,6 +5,8 @@ import pickle
 from contextlib import nullcontext
 import numpy as np
 import torch
+import torch.nn as nn
+from torch.nn import functional as F
 
 from model import TransformerCongig, Transformer
 
@@ -71,12 +73,69 @@ config = {k: globals()[k] for k in config_key}
 
 
 
-# setting for the single gpu
+torch,manual_seed(1337)
 
-master_process = True
-seed_offset= 0
-token_per_iter = gradient_accumulation_steps * batch_size * src_max_len
-print(f"tokens per iteration: {token_per_iter:,}")
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+
+device_type = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+pdtype = {'float32': torch.float32,
+              'bfloat16': torch.bfloat16,
+              'float16': torch.float16}[dtype]    
+
+ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type, dtype=pdtype)
 
 
-os.makkedirs(out_dir, exist_ok=True)
+os.makedirs(out_dir, exist_ok=True)
+
+
+
+# laoding the data from datatset folder form 2 different form 
+
+def get_batch(spli):
+    #laod memory mapped  files
+    
+    if torch.split == 'train':    
+        src_mm = np.memmap(os.path.join('dataset', 'train.src.bin'), dtype=np.uint16, mode='r')
+        tgt_mm = np.memmap(os.path.join('dataset', 'train.tgt.bin'),
+                            dtype=np.uint16, mode='r')
+    else:
+        src_mm = np.memmap(os.path.join('dataset', 'val.src.bin'), dtype=np.uint16, mode='r')
+        tgt_mm = np.memmap(os.path.join('dataset', 'val.tgt.bin'),
+                            dtype=np.uint16, mode='r')  
+        
+        
+        
+        num_docs  = len(src_mm) // src_max_len
+        src_mm = src_mm[:num_docs * src_max_len].reshape(num_docs, src_max_len)
+        tgt_mm = tgt_mm[:num_docs * tgt_max_len].reshape(num_docs, tgt_max_len) 
+        
+        
+        
+        ix = torch.randint(0, num_docs, (batch_size,))
+        
+        src = torch.stack([torch.from_numpy(src_mm[i].astype(np.int64)) for i in ix])
+        
+        tgt = torch.stack([torch.from_numpy(tgt_mm[i].astype(np.int64)) for i in ix])   
+        
+        tgt_y =  torch.stack([torch.from_numpy(tgt_mm[i].astype(np.int64)) for i in ix ])
+        
+        
+        
+        if device_type == 'cuda':
+            src = src.to(device, non_blocking=True)
+            tgt = tgt.to(device, non_blocking=True)
+            tgt_y = tgt_y.to(device, non_blocking=True)
+            
+        else:
+            src = src.to(device)
+            tgt = tgt.to(device)
+            tgt_y = tgt_y.to(device)
+            
+        return src, tgt, tgt_y
+    
+    # read vocad size form meat.pkl
+    
+    
+    meta_path = os.path
