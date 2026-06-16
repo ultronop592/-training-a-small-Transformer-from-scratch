@@ -135,7 +135,14 @@ def get_batch(spli):
             
         return src, tgt, tgt_y
     
-    # read vocad size form meat.pkl
+    # vocad size form meat.pkl
     
     
-    meta_path = os.path
+    meta_path = os.path.join('dataset', 'meta.pkl')
+    with open(meta_path, 'rb') as f:
+        meta =  pickle.load(f)
+    vocab_size = meta['vocab_size']
+    
+
+    
+    
