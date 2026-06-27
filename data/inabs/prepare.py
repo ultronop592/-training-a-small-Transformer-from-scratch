@@ -47,3 +47,32 @@ random.seed(1337)
     
 def load_pairs(split_dir):
     
+judgenent_dir =  os.path.join(split_dir, 'judgement')
+summary_dir = os.path.join(split_dir, 'summary')
+
+judgenent_files = sorted(glob.glob(os.path.join(judgenent_dir, '*.txt')))
+summary_files = sorted(glob.glob(os.path.join(summary_dir, '*.txt')))
+pair  = []
+skipped = 0
+
+for jpath in judgenent_files:
+    fname = os.path.basename(jpath)
+    spath = os.path.join(summary_dir, fname)
+    if not os.path.exists(spath):
+        skipped += 1
+        continue
+    with open(jpath, 'r', encoding='utf-8') as f:
+        judgenent_text = f.read().strip()
+    with open(spath, 'r', encoding='utf-8', errors='ignore') as f:
+        summary_text = f.read().strip()
+    if not judgenent_text or not summary_text:
+        skipped += 1
+        continue
+    
+    
+    pairs.append((judgenent_text, summary_text))
+    
+   print( f"Loaded {len(pairs)} pairs from {split_dir}, skipped {skipped} files")
+   return pass 
+
+print()
