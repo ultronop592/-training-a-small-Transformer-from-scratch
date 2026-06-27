@@ -17,20 +17,28 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# ML datasets and generated artifacts
-data/
-dataset/
-checkpoints/
-outputs/
-runs/
-wandb/
-
-# Model files
+# ML - only ignore generated binary files, NOT the scripts
 *.pt
 *.pth
 *.ckpt
 *.bin
 *.safetensors
+*.pkl
+
+# Ignore generated data outputs but NOT prepare.py
+data/inabs/train_src.bin
+data/inabs/train_tgt.bin
+data/inabs/val_src.bin
+data/inabs/val_tgt.bin
+data/inabs/meta.pkl
+data/inabs/tokenizer.json
+data/inabs/_corpus_temp.txt
+
+# Checkpoints
+out-inabs/
+checkpoints/
+outputs/
+runs/
 
 # Tokenizer artifacts
 tokenizer/
@@ -40,6 +48,13 @@ tokenizer/
 # Logs
 *.log
 logs/
+wandb/
+
+# Datasets (too large)
+Dataset/
+IN-Abs/
+IN-Ext/
+UK-Abs/
 
 # OS files
 .DS_Store
@@ -49,11 +64,3 @@ desktop.ini
 # IDE/editor
 .vscode/
 .idea/
-#dataset
-
-Dataset/
-dataset/
-data/
-IN-Abs/
-IN-Ext/
-UK-Abs/
