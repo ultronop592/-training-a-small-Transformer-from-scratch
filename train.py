@@ -67,7 +67,7 @@ compile = False
 
 
 config_key = [k for k, v in globals().items()
-              if not k.startswith('-') and isinstance(v, (int, float, bool, str))]]
+              if not k.startswith('-') and isinstance(v, (int, float, bool, str))]
 exec(open('configurator.py').read()) 
 config = {k: globals()[k] for k in config_key}
 
