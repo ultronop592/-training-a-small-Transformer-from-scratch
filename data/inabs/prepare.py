@@ -6,7 +6,7 @@ import numpy as np
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
-from tokenizers.pre_tokenizers import whitespace
+from tokenizers.pre_tokenizers import Whitespace
 from tokenizers.processors import TemplateProcessing
 
 
@@ -16,13 +16,10 @@ from tokenizers.processors import TemplateProcessing
 
 #congiguration 
 
-DATA_ROOT = os.path.join('Datasets', 'inabs')
-TRAIN_DATA = os.path.join(DATA_ROOT, 'train')
-TEST_DATA = os.path.join(DATA_ROOT, 'test')
-
-
-
-OUT_DIR = os.path.join('out', 'inabs')
+DATA_ROOT = 'Dataset'
+TRAIN_DIR = os.path.join(DATA_ROOT, 'train-data')
+TEST_DIR  = os.path.join(DATA_ROOT, 'test-data')
+OUT_DIR   = os.path.join('data', 'inabs')
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
@@ -46,10 +43,7 @@ random.seed(1337)
 
  
 def load_pairs(split_dir):
-    """
-    Returns list of (judgment_text, summary_text) tuples.
-    split_dir = 'Dataset/IN-Abs/train-data' or 'test-data'
-    """
+    
     judgement_dir = os.path.join(split_dir, 'judgement')
     summary_dir   = os.path.join(split_dir, 'summary')
  
@@ -157,16 +151,7 @@ os.remove(temp_corpus)
 
  
 def encode_and_pad(texts, max_len, is_target=False):
-    """
-    Tokenize a list of texts.
-    Truncate if longer than max_len.
-    Pad with pad_id if shorter than max_len.
- 
-    is_target=True → add BOS/EOS special tokens around the sequence
-    is_target=False → no special tokens (encoder doesn't need them)
- 
-    Returns: numpy array of shape (N, max_len), dtype=uint16
-    """
+   
     encodings = tokenizer.encode_batch(texts, add_special_tokens=is_target)
  
     rows = []
