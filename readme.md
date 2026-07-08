@@ -1,100 +1,107 @@
 # Indian Legal Document Summarization Transformer
 
-Learning project to train a small encoder-decoder Transformer from scratch for summarizing long Indian legal judgments, especially Supreme Court cases.
+A learning project to train a small encoder-decoder Transformer from scratch
+for summarizing Indian Supreme Court judgments.
 
-The goal is not to use a ready-made large language model. The goal is to understand and build the Transformer training pipeline step by step, inspired by Andrew Karpathy's "Let's build GPT" / nanoGPT style of learning: simple code, clear tensors, small experiments first, then scale carefully.
+Built in the style of Karpathy's nanoGPT — simple PyTorch code, clear tensor
+shapes, no pretrained models, everything written and understood from scratch.
 
-## Objective
+---
 
-Build a model that takes a long Indian legal judgment as plain text and generates a short abstractive summary in simple language.
+## What it does
 
-The summary should capture:
+Takes a long Indian Supreme Court judgment as plain text and generates a short
+abstractive summary covering:
 
 - case background
 - main legal issue
-- important reasoning
-- final decision or verdict
+- key reasoning
+- final verdict
 
-## Target Users
-
-- law students
-- legal researchers
-- junior advocates
-- non-experts who need a quick understanding of judgments
+---
 
 ## Dataset
 
-Primary dataset: **IN-Abs**
+IN-Abs — Indian Supreme Court judgments paired with abstractive summaries.
 
-This dataset is suitable because it contains Indian Supreme Court case documents paired with abstractive summaries.
+Structure expected:
 
-Expected dataset structure:
+    Dataset/IN-Abs/
+        train-data/
+            judgement/   <- input .txt files
+            summary/     <- target .txt files
+        test-data/
+            judgement/
+            summary/
 
-```text
-IN-Abs/
-  train-data/
-    judgement/
-    summary/
-    stats-IN-train.txt
-  test-data/
-    judgement/
-    summary/
-    stats-IN-test.txt
-```
+---
 
-For training:
+## Model
 
-```text
-input  = IN-Abs/train-data/judgement/*.txt
-target = IN-Abs/train-data/summary/*.txt
-```
+Small encoder-decoder Transformer trained from scratch on IN-Abs.
 
-For testing:
+    vocab_size   = 8000     (BPE tokenizer trained on the corpus)
+    d_model      = 256
+    n_heads      = 4
+    d_ff         = 512
+    n_enc_layers = 3
+    n_dec_layers = 3
+    src_max_len  = 1024     (judgment tokens)
+    tgt_max_len  = 256      (summary tokens)
+    total params = ~8.36M
 
-```text
-input  = IN-Abs/test-data/judgement/*.txt
-target = IN-Abs/test-data/summary/*.txt
-```
+Fits in 4GB VRAM using float16 + gradient accumulation.
 
-Each judgment file should have a matching summary file with the same filename.
+---
 
-## Why IN-Abs?
+## Project Structure
 
-IN-Abs is the correct MVP dataset because:
+    Tranformer/
+        config/
+            train_inabs.py      hyperparameters
+        data/
+            inabs/
+                prepare.py      tokenizer training + binary data prep
+        Dataset/
+            IN-Abs/             raw dataset (not committed to git)
+        out-inabs/              checkpoints saved here
+        configurator.py         nanoGPT-style config override
+        model.py                encoder-decoder Transformer
+        train.py                training loop
+        sample.py               inference — judgment in, summary out
+        requirements.txt
 
-- it is focused on Indian Supreme Court judgments
-- it contains abstractive summaries, not only extracted sentences
-- it has enough examples for a small supervised summarization experiment
-- it directly matches the project goal: judgment text to short summary
+---
 
-Other datasets:
+## How to run
 
-- **IN-Ext**: useful later for extractive summarization or rhetorical role analysis, but too small for the first abstractive training run.
-- **UK-Abs**: useful for future cross-country experiments, but not part of the Indian legal MVP.
+    # 1. install dependencies
+    pip install torch numpy tokenizers rouge-score
 
-## Model Plan
+    # 2. prepare data (trains tokenizer, writes .bin files)
+    python data/inabs/prepare.py
 
-The model will be a small Transformer trained from scratch.
+    # 3. train
+    python train.py config/train_inabs.py
 
-Planned architecture:
+    # 4. generate a summary
+    python sample.py
 
-- tokenizer trained on the dataset
-- token embedding layer
-- positional embedding layer
-- Transformer encoder
-- Transformer decoder
-- cross-attention from decoder to encoder output
-- language modeling head for summary generation
+    # or point at a specific judgment file
+    python sample.py --judgment Dataset/IN-Abs/test-data/judgement/1953_123.txt
 
-This is different from nanoGPT because nanoGPT is decoder-only, while summarization is better suited for an encoder-decoder model. However, the implementation style should stay nanoGPT-like:
+---
 
-- simple PyTorch code
-- clear tensor shapes
-- minimal abstractions
-- train loop written manually
-- frequent small experiments
-- understandable model components
+## Why not use a pretrained model
 
-## Hardware Constraint
+The goal is to understand the full training pipeline — tokenizer, embeddings,
+attention, cross-attention, loss, gradient accumulation, checkpointing — by
+building each piece from scratch, the same way Karpathy builds GPT in his
+video series. Using a pretrained model would skip all of that.
 
-GPU memory: **4GB**
+---
+
+## Hardware
+
+GPU: 4GB VRAM
+Training uses float16 + gradient accumulation (effective batch = 32).
