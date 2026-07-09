@@ -164,8 +164,8 @@ class Transformer(nn.Module):
        
         src_padding_mask = (src_ids == pad_id)   # (B, T_src), dtype=bool
  
-        enc_out = self.encoder(src_ids, src_padding_mask=src_padding_mask)        # (B, T_src, d_model)
-        logits  = self.decoder(tgt_ids, enc_out, src_padding_mask=src_padding_mask) # (B, T_tgt, vocab_size)
+        enc_out = self.encoder(src_ids, src_padding_mask=src_padding_mask)       
+        logits  = self.decoder(tgt_ids, enc_out, src_padding_mask=src_padding_mask) 
  
         loss = None
         if tgt_y is not None:
