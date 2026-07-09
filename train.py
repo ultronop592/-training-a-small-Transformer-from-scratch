@@ -9,8 +9,6 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 from model import TransformerConfig, Transformer
-# FIX: was 'TransformerCongig' -- model.py actually defines 'TransformerConfig'
-# (confirmed by the ImportError), so this was a genuine typo, not a matching name.
 
 # -----------------------------------------------------------------------------
 # hyperparameters
@@ -19,9 +17,7 @@ eval_interval = 500
 log_interval = 10
 eval_iters = 50
 eval_only = False
-always_save_checkpoints = True   # FIX: was 'always_save_checpoints' but used
-                                  # later in the file as 'always_save_checkpoints'
-                                  # -> NameError. Now the name is consistent.
+always_save_checkpoints = True
 init_from = 'scratch'  # 'scratch' or 'resume'
 
 # wandb logging
@@ -69,9 +65,7 @@ exec(open('configurator.py').read())
 config = {k: globals()[k] for k in config_keys}
 # -----------------------------------------------------------------------------
 
-torch.manual_seed(1337)   # FIX: was 'torch,manual_seed(1337)' (comma instead of
-                           # dot) -> this actually called an undefined function
-                           # 'manual_seed' and built a tuple, raising NameError.
+torch.manual_seed(1337)
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -88,12 +82,6 @@ os.makedirs(out_dir, exist_ok=True)
 
 # -----------------------------------------------------------------------------
 # data loading
-# NOTE: your original had two different literal folder names ('dataset' for
-# the .bin files and 'data_dir' for meta.pkl) which almost certainly pointed
-# at the wrong place for one of them. Unified both under a single directory
-# built from the `dataset` config var -- adjust this to match wherever your
-# prep pipeline actually wrote train.src.bin / train.tgt.bin / val.src.bin /
-# val.tgt.bin / meta.pkl.
 data_dir = os.path.join('data', dataset)
 
 meta_path = os.path.join(data_dir, 'meta.pkl')
@@ -107,12 +95,6 @@ else:
 
 
 def get_batch(split):
-    # FIX: original signature was 'def get_batch(spli):' (typo'd, unused
-    # parameter) and the body checked 'if torch.split == 'train':' -- torch.split
-    # is a real torch function, so that comparison was always False and the
-    # function *always* fell into the 'val' branch regardless of what was
-    # requested. The 'train' branch also never reached a return statement, so
-    # calling get_batch('train') would have returned None, None, None.
     src_file = 'train.src.bin' if split == 'train' else 'val.src.bin'
     tgt_file = 'train.tgt.bin' if split == 'train' else 'val.tgt.bin'
 
@@ -128,11 +110,6 @@ def get_batch(split):
     src = torch.stack([torch.from_numpy(src_mm[i].astype(np.int64)) for i in ix])
     tgt = torch.stack([torch.from_numpy(tgt_mm[i].astype(np.int64)) for i in ix])
     tgt_y = torch.stack([torch.from_numpy(tgt_mm[i].astype(np.int64)) for i in ix])
-    # NOTE (not fixed, just flagging): tgt and tgt_y are built identically here,
-    # both the raw target sequence. For teacher forcing you'd usually want
-    # tgt = decoder input (e.g. <bos> + tokens[:-1]) and tgt_y = shifted labels
-    # (tokens[1:] + <eos>) -- unless your Transformer.forward() already does
-    # that shift internally. Worth double-checking against model.py.
 
     if device_type == 'cuda':
         src = src.to(device, non_blocking=True)
@@ -171,10 +148,6 @@ elif init_from == 'resume':
     print(f"Resuming training from {ckpt_path}")
     checkpoint = torch.load(ckpt_path, map_location=device)
 
-    # FIX: this whole block (cfg/model/state_dict creation) was previously
-    # nested *inside* the 'for k in model_args' loop, so it re-ran (and
-    # re-created the model from scratch) once per key in model_args. It only
-    # needs to happen once, after the loop finishes overwriting model_args.
     for k in model_args:
         model_args[k] = checkpoint['model_args'][k]
 
@@ -186,7 +159,7 @@ elif init_from == 'resume':
         if k.startswith('decoder.'):
             state_dict[k[len('decoder.'):]] = state_dict.pop(k)
 
-    model.load_state_dict(state_dict)   # FIX: was 'load_status_dict' (typo, no such method)
+    model.load_state_dict(state_dict)
     iter_num = checkpoint['iter_num']
     best_val_loss = checkpoint['best_val_loss']
     print(f"Resumed from iteration {iter_num} with best val loss {best_val_loss}")
@@ -200,9 +173,6 @@ print("number of parameters: %.2fM" % (n_params / 1e6,))
 
 # grad scaler
 scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
-# FIX: was 'enabled=(device_type == 'float16')' -- device_type is only ever
-# 'cuda' or 'cpu', so that condition could never be true and the scaler was
-# silently disabled even when you actually wanted float16 mixed precision.
 
 # optimizer
 decay_params = [p for n, p in model.named_parameters() if p.dim() >= 2]
@@ -239,9 +209,7 @@ def estimate_loss():
             with ctx:
                 logits, loss = model(src, tgt, tgt_y)
             losses[k] = loss.item()
-        out[split] = losses.mean().item()   # FIX: was 'losses.item()', which only
-                                             # works on a single-element tensor and
-                                             # would raise on eval_iters > 1.
+        out[split] = losses.mean().item()
     model.train()
     return out
 
@@ -274,7 +242,7 @@ while True:
     if iter_num % eval_interval == 0:
         losses = estimate_loss()
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-        if wandb_log:   # FIX: was 'wandb_Log' (wrong case) -> NameError
+        if wandb_log:
             wandb.log({
                 "iter": iter_num,
                 "train/loss": losses['train'],
@@ -283,17 +251,11 @@ while True:
             })
 
         if losses['val'] < best_val_loss or always_save_checkpoints:
-            best_val_loss = losses['val']   # FIX: was 'best=val_loss = losses['val']',
-                                             # which is a chained assignment that set
-                                             # two *different* variables ('best' and
-                                             # 'val_loss') instead of 'best_val_loss'.
+            best_val_loss = losses['val']
             if iter_num > 0:
                 ckpt = {
                     'model': model.state_dict(),
-                    'optimizer': optimizer.state_dict(),   # FIX: key now matches
-                                                            # what's read back on resume
-                                                            # (was saved as 'optimiser'
-                                                            # but loaded as 'optimizer').
+                    'optimizer': optimizer.state_dict(),
                     'model_args': model_args,
                     'iter_num': iter_num,
                     'best_val_loss': best_val_loss,
@@ -306,27 +268,20 @@ while True:
     if iter_num == 0 and eval_only:
         break
 
-    # FIX: everything from here down used to sit outside the 'while True:' loop
-    # at top-level indentation. That meant: (a) it only ever ran once, after the
-    # loop somehow ended, instead of once per iteration, and (b) since iter_num
-    # was never incremented *inside* the loop, 'while True' had no way to exit
-    # on its own -- an infinite loop that never actually trained anything.
     for micro_step in range(gradient_accumulation_steps):
         with ctx:
             logits, loss = model(src, tgt, tgt_y)
             loss = loss / gradient_accumulation_steps
         src, tgt, tgt_y = get_batch('train')
-        scaler.scale(loss).backward()   # FIX: was 'scaler.sacler(loss).baclward()' (typos)
+        scaler.scale(loss).backward()
 
     if grad_clip != 0.0:
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
 
-    scaler.step(optimizer)   # FIX: was 'scaler.step(opitimiser)' -- undefined name, NameError
-    scaler.update()          # FIX: was missing entirely -- required after scaler.step()
-    optimizer.zero_grad(set_to_none=True)   # FIX: was missing entirely -- without this,
-                                             # gradients from every micro-step and every
-                                             # iteration just keep accumulating forever.
+    scaler.step(optimizer)
+    scaler.update()
+    optimizer.zero_grad(set_to_none=True)
 
     t1 = time.time()
     dt = t1 - t0
