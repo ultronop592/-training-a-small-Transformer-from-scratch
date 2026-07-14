@@ -1,9 +1,8 @@
-# config/train_inabs.py
-# run with: python train.py config/train_inabs.py
+
 
 # I/O
 out_dir   = 'out-inabs'
-init_from = 'scratch'
+init_from = 'resume'
 
 # eval / logging
 eval_interval = 500
@@ -32,7 +31,7 @@ tgt_max_len  = 256
 
 # optimizer
 learning_rate = 3e-4
-max_iters     = 10000
+max_iters     = 30000
 weight_decay  = 1e-1
 beta1         = 0.9
 beta2         = 0.95
@@ -41,7 +40,7 @@ grad_clip     = 1.0
 # lr schedule
 decay_lr       = True
 warmup_iters   = 400
-lr_decay_iters = 10000
+lr_decay_iters = 30000
 min_lr         = 3e-5
 
 # system

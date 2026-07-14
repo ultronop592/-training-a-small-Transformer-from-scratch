@@ -11,12 +11,12 @@ from torch.nn import functional as F
 
 @dataclass
 class TransformerConfig:
-    vocab_size:   int   = 8000   # fixed: was 'vocal_size'
+    vocab_size:   int   = 8000  
     d_model:      int   = 256
     n_heads:      int   = 4
-    d_ff:         int   = 512    # fixed: was 'd_diff'
-    n_enc_layers: int   = 3      # fixed: was 'n_encoder_layers'
-    n_dec_layers: int   = 3      # fixed: was 'n_decoder_layers'
+    d_ff:         int   = 512    
+    n_enc_layers: int   = 3      
+    n_dec_layers: int   = 3     
     dropout:      float = 0.1
     src_max_len:  int   = 1024
     tgt_max_len:  int   = 256
@@ -212,20 +212,18 @@ class Transformer(nn.Module):
         enc_out = self.encoder(src_ids, src_padding_mask=src_padding_mask)
         logits  = self.decoder(tgt_ids, enc_out, src_padding_mask=src_padding_mask)
         
-        
-        
-        
-        loss = F.cross_entropy(
+         
+         
+         
+        if tgt_y is not None:
+            
+            B, T, C = logits.shape
+            loss = F.cross_entropy(
             logits.view(B * T, C),
             tgt_y.view(B * T),
             ignore_index=pad_id,
             label_smoothing=0.1,
-        )
-
-
-        
-            
-
+       )
         return logits, loss
 
     @torch.no_grad()
