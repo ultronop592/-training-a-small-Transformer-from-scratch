@@ -1,6 +1,4 @@
-"""
-model.py — Encoder-Decoder Transformer for Indian Legal Summarization
-"""
+
 
 import math
 from dataclasses import dataclass
@@ -9,10 +7,8 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-
-# =============================================================================
 # CONFIG
-# =============================================================================
+
 @dataclass
 class TransformerConfig:
     vocab_size:   int   = 8000   # fixed: was 'vocal_size'
@@ -26,9 +22,8 @@ class TransformerConfig:
     tgt_max_len:  int   = 256
 
 
-# =============================================================================
 # SINGLE ATTENTION HEAD
-# =============================================================================
+
 class Head(nn.Module):
     def __init__(self, config, head_size, causal=False):
         super().__init__()
@@ -68,14 +63,14 @@ class Head(nn.Module):
 
         wei = F.softmax(wei, dim=-1)
         wei = self.dropout(wei)
-        return wei @ v  # (B, T, head_size)
+        return wei @ v  
 
 
-# =============================================================================
+
 # MULTI-HEAD ATTENTION
-# =============================================================================
+
 class MultiHeadAttention(nn.Module):
-    def __init__(self, config, causal=False):  # fixed: was 'congig' typo
+    def __init__(self, config, causal=False):  
         super().__init__()
         d_model   = config.d_model
         n_heads   = config.n_heads
@@ -91,16 +86,15 @@ class MultiHeadAttention(nn.Module):
         return self.dropout(self.proj(out))
 
 
-# =============================================================================
 # FEEDFORWARD
-# =============================================================================
+
 class FeedForward(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(config.d_model, config.d_ff),  # fixed: was config.d_diff
+            nn.Linear(config.d_model, config.d_ff), 
             nn.GELU(),
-            nn.Linear(config.d_ff, config.d_model),  # fixed: was config.d_diff
+            nn.Linear(config.d_ff, config.d_model),  
             nn.Dropout(config.dropout),
         )
 
@@ -108,9 +102,9 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 
-# =============================================================================
+
 # ENCODER BLOCK
-# =============================================================================
+
 class EncoderBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -125,16 +119,16 @@ class EncoderBlock(nn.Module):
         return x
 
 
-# =============================================================================
+
 # DECODER BLOCK
-# =============================================================================
+
 class DecoderBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.ln1        = nn.LayerNorm(config.d_model)
-        self.self_attn  = MultiHeadAttention(config, causal=True)   # causal self-attention
+        self.self_attn  = MultiHeadAttention(config, causal=True)   
         self.ln2        = nn.LayerNorm(config.d_model)
-        self.cross_attn = MultiHeadAttention(config, causal=False)  # cross-attention
+        self.cross_attn = MultiHeadAttention(config, causal=False)  
         self.ln3        = nn.LayerNorm(config.d_model)
         self.ff         = FeedForward(config)
 
@@ -145,9 +139,9 @@ class DecoderBlock(nn.Module):
         return x
 
 
-# =============================================================================
+
 # ENCODER
-# =============================================================================
+
 class Encoder(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -171,20 +165,19 @@ class Encoder(nn.Module):
         return self.ln_f(x)
 
 
-# =============================================================================
 # DECODER
-# =============================================================================
+
 class Decoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.token_embedding = nn.Embedding(config.vocab_size, config.d_model)
-        self.pos_embedding   = nn.Embedding(config.tgt_max_len, config.d_model)  # fixed: was nn.Module
+        self.pos_embedding   = nn.Embedding(config.tgt_max_len, config.d_model)  
         self.dropout         = nn.Dropout(config.dropout)
-        self.blocks          = nn.ModuleList([DecoderBlock(config) for _ in range(config.n_dec_layers)])  # fixed: was Decode + n_decoder_layers
+        self.blocks          = nn.ModuleList([DecoderBlock(config) for _ in range(config.n_dec_layers)])  
         self.ln_f            = nn.LayerNorm(config.d_model)
-        self.lm_head         = nn.Linear(config.d_model, config.vocab_size, bias=False)  # fixed: was _lm_head
+        self.lm_head         = nn.Linear(config.d_model, config.vocab_size, bias=False) 
 
-    def forward(self, tgt_ids, enc_out, src_padding_mask=None):  # fixed: was src_padding_maxk typo
+    def forward(self, tgt_ids, enc_out, src_padding_mask=None):  
         B, T = tgt_ids.shape
         device = tgt_ids.device
 
@@ -199,9 +192,7 @@ class Decoder(nn.Module):
         return self.lm_head(x)
 
 
-# =============================================================================
 # TRANSFORMER
-# =============================================================================
 class Transformer(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -220,15 +211,20 @@ class Transformer(nn.Module):
 
         enc_out = self.encoder(src_ids, src_padding_mask=src_padding_mask)
         logits  = self.decoder(tgt_ids, enc_out, src_padding_mask=src_padding_mask)
+        
+        
+        
+        
+        loss = F.cross_entropy(
+            logits.view(B * T, C),
+            tgt_y.view(B * T),
+            ignore_index=pad_id,
+            label_smoothing=0.1,
+        )
 
-        loss = None
-        if tgt_y is not None:
-            B, T, C = logits.shape
-            loss = F.cross_entropy(
-                logits.view(B * T, C),
-                tgt_y.view(B * T),
-                ignore_index=pad_id,
-            )
+
+        
+            
 
         return logits, loss
 
